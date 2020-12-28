@@ -35,9 +35,9 @@
  * since it also affects symbols marked with "extern".
  */
 #ifndef ASSEMBLY
-#if __GNUC__ >= 4
-#pragma GCC visibility push(hidden)
-#endif
+  #if __GNUC__ >= 4
+    #pragma GCC visibility push(hidden)
+  #endif
 #endif /* ASSEMBLY */
 
 #endif /* _COMPILER_H */

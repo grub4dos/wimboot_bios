@@ -29,7 +29,7 @@
 
 /** Debug switch */
 #ifndef DEBUG
-#define DEBUG 1
+  #define DEBUG 1
 #endif
 
 /** Base segment address
@@ -73,55 +73,59 @@
 /**
  * Calculate start page number
  *
- * @v address		Address
- * @ret page		Start page number
+ * @v address   Address
+ * @ret page    Start page number
  */
-static inline unsigned int page_start ( const void *address ) {
-	return ( ( ( intptr_t ) address ) / PAGE_SIZE );
+static inline unsigned int page_start (const void *address)
+{
+  return (((intptr_t) address) / PAGE_SIZE);
 }
 
 /**
  * Calculate end page number
  *
- * @v address		Address
- * @ret page		End page number
+ * @v address   Address
+ * @ret page    End page number
  */
-static inline unsigned int page_end ( const void *address ) {
-	return ( ( ( ( intptr_t ) address ) + PAGE_SIZE - 1 ) / PAGE_SIZE );
+static inline unsigned int page_end (const void *address)
+{
+  return ((((intptr_t) address) + PAGE_SIZE - 1) / PAGE_SIZE);
 }
 
 /**
  * Calculate page length
  *
- * @v start		Start address
- * @v end		End address
- * @ret num_pages	Number of pages
+ * @v start   Start address
+ * @v end   End address
+ * @ret num_pages Number of pages
  */
-static inline unsigned int page_len ( const void *start, const void *end ) {
-	return ( page_end ( end ) - page_start ( start ) );
+static inline unsigned int page_len (const void *start, const void *end)
+{
+  return (page_end (end) - page_start (start));
 }
 
 /**
  * Bochs magic breakpoint
  *
  */
-static inline void bochsbp ( void ) {
-	__asm__ __volatile__ ( "xchgw %bx, %bx" );
+static inline void bochsbp (void)
+{
+  __asm__ __volatile__ ("xchgw %bx, %bx");
 }
 
 /** Debugging output */
-#define DBG(...) do {						\
-		if ( ( DEBUG & 1 ) && ( ! cmdline_quiet ) ) {	\
-			printf ( __VA_ARGS__ );			\
-		}						\
-	} while ( 0 )
+#define DBG(...) do {           \
+    if ( ( DEBUG & 1 ) && ( ! cmdline_quiet ) ) { \
+      printf ( __VA_ARGS__ );     \
+    }           \
+  } while ( 0 )
 
 /** Verbose debugging output */
-#define DBG2(...) do {						\
-		if ( ( DEBUG & 2 ) && ( ! cmdline_quiet ) ) {	\
-			printf ( __VA_ARGS__ );			\
-		}						\
-	} while ( 0 )
+#define DBG2(...) do {            \
+    if ( ( DEBUG & 2 ) && ( ! cmdline_quiet ) ) { \
+      printf ( __VA_ARGS__ );     \
+    }           \
+  } while ( 0 )
 
 /* Branch prediction macros */
 #define likely( x ) __builtin_expect ( !! (x), 1 )
@@ -130,12 +134,12 @@ static inline void bochsbp ( void ) {
 /* Mark parameter as unused */
 #define __unused __attribute__ (( unused ))
 
-extern void call_real ( struct bootapp_callback_params *params );
-extern void call_interrupt ( struct bootapp_callback_params *params );
-extern void __attribute__ (( noreturn )) reboot ( void );
+extern void call_real (struct bootapp_callback_params *params);
+extern void call_interrupt (struct bootapp_callback_params *params);
+extern void __attribute__ ((noreturn)) reboot (void);
 
-extern void __attribute__ (( noreturn, format ( printf, 1, 2 ) ))
-die ( const char *fmt, ... );
+extern void __attribute__ ((noreturn, format (printf, 1, 2)))
+die (const char *fmt, ...);
 
 #endif /* ASSEMBLY */
 

@@ -32,38 +32,37 @@
 /**
  * Print character to console
  *
- * @v character		Character to print
+ * @v character   Character to print
  */
-int putchar ( int character ) {
-	struct bootapp_callback_params params;
-
-	/* Convert LF to CR,LF */
-	if ( character == '\n' )
-		putchar ( '\r' );
-
-	memset ( &params, 0, sizeof ( params ) );
-	params.vector.interrupt = 0x10;
-	params.eax = ( 0x0e00 | character );
-	params.ebx = 0x0007;
-	call_interrupt ( &params );
-
-	return 0;
+int putchar (int character)
+{
+  struct bootapp_callback_params params;
+  /* Convert LF to CR,LF */
+  if (character == '\n')
+  {
+    putchar ('\r');
+  }
+  memset (&params, 0, sizeof (params));
+  params.vector.interrupt = 0x10;
+  params.eax = (0x0e00 | character);
+  params.ebx = 0x0007;
+  call_interrupt (&params);
+  return 0;
 }
 
 /**
  * Get character from console
  *
- * @ret character	Character
+ * @ret character Character
  */
-int getchar ( void ) {
-	struct bootapp_callback_params params;
-	int character;
-
-	/* Get character */
-	memset ( &params, 0, sizeof ( params ) );
-	params.vector.interrupt = 0x16;
-	call_interrupt ( &params );
-	character = params.al;
-
-	return character;
+int getchar (void)
+{
+  struct bootapp_callback_params params;
+  int character;
+  /* Get character */
+  memset (&params, 0, sizeof (params));
+  params.vector.interrupt = 0x16;
+  call_interrupt (&params);
+  character = params.al;
+  return character;
 }

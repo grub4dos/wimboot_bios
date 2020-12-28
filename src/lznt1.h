@@ -37,11 +37,11 @@
 
 /** Extract LZNT1 compressed value length */
 #define LZNT1_VALUE_LEN( tuple, split ) \
-	( ( (tuple) & ( ( 1 << (split) ) - 1 ) ) + 3 )
+  ( ( (tuple) & ( ( 1 << (split) ) - 1 ) ) + 3 )
 
 /** Extract LZNT1 compressed value offset */
 #define LZNT1_VALUE_OFFSET( tuple, split ) ( ( (tuple) >> split ) + 1 )
 
-extern ssize_t lznt1_decompress ( const void *data, size_t len, void *buf );
+extern ssize_t lznt1_decompress (const void *data, size_t len, void *buf);
 
 #endif /* _LZNT1_H */

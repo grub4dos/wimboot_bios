@@ -31,25 +31,22 @@
 /**
  * Handle fatal errors
  *
- * @v fmt	Error message format string
- * @v ...	Arguments
+ * @v fmt Error message format string
+ * @v ... Arguments
  */
-void die ( const char *fmt, ... ) {
-	va_list args;
-
-	/* Print message */
-	va_start ( args, fmt );
-	vprintf ( fmt, args );
-	va_end ( args );
-
-	/* Wait for keypress */
-	printf ( "Press a key to reboot..." );
-	getchar();
-	printf ( "\n" );
-
-	/* Reboot system */
-	reboot();
-
-	/* Should be impossible to reach this */
-	__builtin_unreachable();
+void die (const char *fmt, ...)
+{
+  va_list args;
+  /* Print message */
+  va_start (args, fmt);
+  vprintf (fmt, args);
+  va_end (args);
+  /* Wait for keypress */
+  printf ("Press a key to reboot...");
+  getchar();
+  printf ("\n");
+  /* Reboot system */
+  reboot();
+  /* Should be impossible to reach this */
+  __builtin_unreachable();
 }

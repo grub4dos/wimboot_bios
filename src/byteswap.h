@@ -9,134 +9,139 @@
 
 #include <stdint.h>
 
-static inline __attribute__ (( always_inline, const )) uint16_t
-__bswap_variable_16 ( uint16_t x ) {
-	__asm__ ( "xchgb %b0,%h0" : "=Q" ( x ) : "0" ( x ) );
-	return x;
+static inline __attribute__ ((always_inline, const)) uint16_t
+__bswap_variable_16 (uint16_t x)
+{
+  __asm__ ("xchgb %b0,%h0" : "=Q" (x) : "0" (x));
+  return x;
 }
 
-static inline __attribute__ (( always_inline )) void
-__bswap_16s ( uint16_t *x ) {
-	__asm__ ( "rorw $8, %0" : "+m" ( *x ) );
+static inline __attribute__ ((always_inline)) void
+__bswap_16s (uint16_t *x)
+{
+  __asm__ ("rorw $8, %0" : "+m" (*x));
 }
 
-static inline __attribute__ (( always_inline, const )) uint32_t
-__bswap_variable_32 ( uint32_t x ) {
-	__asm__ ( "bswapl %k0" : "=r" ( x ) : "0" ( x ) );
-	return x;
+static inline __attribute__ ((always_inline, const)) uint32_t
+__bswap_variable_32 (uint32_t x)
+{
+  __asm__ ("bswapl %k0" : "=r" (x) : "0" (x));
+  return x;
 }
 
-static inline __attribute__ (( always_inline )) void
-__bswap_32s ( uint32_t *x ) {
-	__asm__ ( "bswapl %k0" : "=r" ( *x ) : "0" ( *x ) );
+static inline __attribute__ ((always_inline)) void
+__bswap_32s (uint32_t *x)
+{
+  __asm__ ("bswapl %k0" : "=r" (*x) : "0" (*x));
 }
 
 #ifdef __x86_64__
 
-static inline __attribute__ (( always_inline, const )) uint64_t
-__bswap_variable_64 ( uint64_t x ) {
-	__asm__ ( "bswapq %q0" : "=r" ( x ) : "0" ( x ) );
-	return x;
+static inline __attribute__ ((always_inline, const)) uint64_t
+__bswap_variable_64 (uint64_t x)
+{
+  __asm__ ("bswapq %q0" : "=r" (x) : "0" (x));
+  return x;
 }
 
 #else /* __x86_64__ */
 
-static inline __attribute__ (( always_inline, const )) uint64_t
-__bswap_variable_64 ( uint64_t x ) {
-	uint32_t in_high = ( x >> 32 );
-	uint32_t in_low = ( x & 0xffffffffUL );
-	uint32_t out_high;
-	uint32_t out_low;
-
-	__asm__ ( "bswapl %0\n\t"
-		  "bswapl %1\n\t"
-		  "xchgl %0,%1\n\t"
-		  : "=r" ( out_high ), "=r" ( out_low )
-		  : "0" ( in_high ), "1" ( in_low ) );
-
-	return ( ( ( ( uint64_t ) out_high ) << 32 ) |
-		 ( ( uint64_t ) out_low ) );
+static inline __attribute__ ((always_inline, const)) uint64_t
+__bswap_variable_64 (uint64_t x)
+{
+  uint32_t in_high = (x >> 32);
+  uint32_t in_low = (x & 0xffffffffUL);
+  uint32_t out_high;
+  uint32_t out_low;
+  __asm__ ("bswapl %0\n\t"
+           "bswapl %1\n\t"
+           "xchgl %0,%1\n\t"
+           : "=r" (out_high), "=r" (out_low)
+           : "0" (in_high), "1" (in_low));
+  return ((((uint64_t) out_high) << 32) |
+          ((uint64_t) out_low));
 }
 
 #endif /* __x86_64__ */
 
-static inline __attribute__ (( always_inline )) void
-__bswap_64s ( uint64_t *x ) {
-	*x = __bswap_variable_64 ( *x );
+static inline __attribute__ ((always_inline)) void
+__bswap_64s (uint64_t *x)
+{
+  *x = __bswap_variable_64 (*x);
 }
 
 /**
  * Byte-swap a 16-bit constant
  *
- * @v value		Constant value
- * @ret swapped		Byte-swapped value
+ * @v value   Constant value
+ * @ret swapped   Byte-swapped value
  */
-#define __bswap_constant_16( value )					\
-	( ( ( (value) & 0x00ff ) << 8 ) |				\
-	  ( ( (value) & 0xff00 ) >> 8 ) )
+#define __bswap_constant_16( value )          \
+  ( ( ( (value) & 0x00ff ) << 8 ) |       \
+    ( ( (value) & 0xff00 ) >> 8 ) )
 
 /**
  * Byte-swap a 32-bit constant
  *
- * @v value		Constant value
- * @ret swapped		Byte-swapped value
+ * @v value   Constant value
+ * @ret swapped   Byte-swapped value
  */
 #define __bswap_constant_32( value ) \
-	( ( ( (value) & 0x000000ffUL ) << 24 ) |			\
-	  ( ( (value) & 0x0000ff00UL ) <<  8 ) |			\
-	  ( ( (value) & 0x00ff0000UL ) >>  8 ) |			\
-	  ( ( (value) & 0xff000000UL ) >> 24 ) )
+  ( ( ( (value) & 0x000000ffUL ) << 24 ) |      \
+    ( ( (value) & 0x0000ff00UL ) <<  8 ) |      \
+    ( ( (value) & 0x00ff0000UL ) >>  8 ) |      \
+    ( ( (value) & 0xff000000UL ) >> 24 ) )
 
 /**
  * Byte-swap a 64-bit constant
  *
- * @v value		Constant value
- * @ret swapped		Byte-swapped value
+ * @v value   Constant value
+ * @ret swapped   Byte-swapped value
  */
-#define __bswap_constant_64( value )					\
-	( ( ( (value) & 0x00000000000000ffULL ) << 56 ) |		\
-	  ( ( (value) & 0x000000000000ff00ULL ) << 40 ) |		\
-	  ( ( (value) & 0x0000000000ff0000ULL ) << 24 ) |		\
-	  ( ( (value) & 0x00000000ff000000ULL ) <<  8 ) |		\
-	  ( ( (value) & 0x000000ff00000000ULL ) >>  8 ) |		\
-	  ( ( (value) & 0x0000ff0000000000ULL ) >> 24 ) |		\
-	  ( ( (value) & 0x00ff000000000000ULL ) >> 40 ) |		\
-	  ( ( (value) & 0xff00000000000000ULL ) >> 56 ) )
+#define __bswap_constant_64( value )          \
+  ( ( ( (value) & 0x00000000000000ffULL ) << 56 ) |   \
+    ( ( (value) & 0x000000000000ff00ULL ) << 40 ) |   \
+    ( ( (value) & 0x0000000000ff0000ULL ) << 24 ) |   \
+    ( ( (value) & 0x00000000ff000000ULL ) <<  8 ) |   \
+    ( ( (value) & 0x000000ff00000000ULL ) >>  8 ) |   \
+    ( ( (value) & 0x0000ff0000000000ULL ) >> 24 ) |   \
+    ( ( (value) & 0x00ff000000000000ULL ) >> 40 ) |   \
+    ( ( (value) & 0xff00000000000000ULL ) >> 56 ) )
 
 /**
  * Byte-swap a 16-bit value
  *
- * @v value		Value
- * @ret swapped		Byte-swapped value
+ * @v value   Value
+ * @ret swapped   Byte-swapped value
  */
-#define __bswap_16( value )						\
-	( __builtin_constant_p (value) ?				\
-	  ( ( uint16_t ) __bswap_constant_16 ( ( uint16_t ) (value) ) ) \
-	  : __bswap_variable_16 (value) )
+#define __bswap_16( value )           \
+  ( __builtin_constant_p (value) ?        \
+    ( ( uint16_t ) __bswap_constant_16 ( ( uint16_t ) (value) ) ) \
+    : __bswap_variable_16 (value) )
 #define bswap_16( value ) __bswap_16 (value)
 
 /**
  * Byte-swap a 32-bit value
  *
- * @v value		Value
- * @ret swapped		Byte-swapped value
+ * @v value   Value
+ * @ret swapped   Byte-swapped value
  */
-#define __bswap_32( value )						\
-	( __builtin_constant_p (value) ?				\
-	  ( ( uint32_t ) __bswap_constant_32 ( ( uint32_t ) (value) ) ) \
-	  : __bswap_variable_32 (value) )
+#define __bswap_32( value )           \
+  ( __builtin_constant_p (value) ?        \
+    ( ( uint32_t ) __bswap_constant_32 ( ( uint32_t ) (value) ) ) \
+    : __bswap_variable_32 (value) )
 #define bswap_32( value ) __bswap_32 (value)
 
 /**
  * Byte-swap a 64-bit value
  *
- * @v value		Value
- * @ret swapped		Byte-swapped value
+ * @v value   Value
+ * @ret swapped   Byte-swapped value
  */
-#define __bswap_64( value )						\
-	( __builtin_constant_p (value) ?				\
-	  ( ( uint64_t ) __bswap_constant_64 ( ( uint64_t ) (value) ) ) \
-          : __bswap_variable_64 (value) )
+#define __bswap_64( value )           \
+  ( __builtin_constant_p (value) ?        \
+    ( ( uint64_t ) __bswap_constant_64 ( ( uint64_t ) (value) ) ) \
+    : __bswap_variable_64 (value) )
 #define bswap_64( value ) __bswap_64 (value)
 
 #define __cpu_to_leNN( bits, value ) (value)

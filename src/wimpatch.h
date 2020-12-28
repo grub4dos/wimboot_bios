@@ -31,7 +31,7 @@
 
 struct vdisk_file;
 
-extern void patch_wim ( struct vdisk_file *file, void *data, size_t offset,
-			size_t len );
+extern void patch_wim (struct vdisk_file *file, void *data, size_t offset,
+                       size_t len);
 
 #endif /* _WIMPATCH_H */

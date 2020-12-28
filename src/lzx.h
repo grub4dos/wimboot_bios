@@ -67,114 +67,125 @@
 #define LZX_WIM_MAGIC_FILESIZE 12000000
 
 /** Block types */
-enum lzx_block_type {
-	/** Verbatim block */
-	LZX_BLOCK_VERBATIM = 1,
-	/** Aligned offset block */
-	LZX_BLOCK_ALIGNOFFSET = 2,
-	/** Uncompressed block */
-	LZX_BLOCK_UNCOMPRESSED = 3,
+enum lzx_block_type
+{
+  /** Verbatim block */
+  LZX_BLOCK_VERBATIM = 1,
+  /** Aligned offset block */
+  LZX_BLOCK_ALIGNOFFSET = 2,
+  /** Uncompressed block */
+  LZX_BLOCK_UNCOMPRESSED = 3,
 };
 
 /** An LZX input stream */
-struct lzx_input_stream {
-	/** Data */
-	const uint8_t *data;
-	/** Length */
-	size_t len;
-	/** Offset within stream */
-	size_t offset;
+struct lzx_input_stream
+{
+  /** Data */
+  const uint8_t *data;
+  /** Length */
+  size_t len;
+  /** Offset within stream */
+  size_t offset;
 };
 
 /** An LZX output stream */
-struct lzx_output_stream {
-	/** Data, or NULL */
-	uint8_t *data;
-	/** Offset within stream */
-	size_t offset;
-	/** End of current block within stream */
-	size_t threshold;
+struct lzx_output_stream
+{
+  /** Data, or NULL */
+  uint8_t *data;
+  /** Offset within stream */
+  size_t offset;
+  /** End of current block within stream */
+  size_t threshold;
 };
 
 /** LZX decompressor */
-struct lzx {
-	/** Input stream */
-	struct lzx_input_stream input;
-	/** Output stream */
-	struct lzx_output_stream output;
-	/** Accumulator */
-	uint32_t accumulator;
-	/** Number of bits in accumulator */
-	unsigned int bits;
-	/** Block type */
-	enum lzx_block_type block_type;
-	/** Repeated offsets */
-	unsigned int repeated_offset[LZX_REPEATED_OFFSETS];
+struct lzx
+{
+  /** Input stream */
+  struct lzx_input_stream input;
+  /** Output stream */
+  struct lzx_output_stream output;
+  /** Accumulator */
+  uint32_t accumulator;
+  /** Number of bits in accumulator */
+  unsigned int bits;
+  /** Block type */
+  enum lzx_block_type block_type;
+  /** Repeated offsets */
+  unsigned int repeated_offset[LZX_REPEATED_OFFSETS];
 
-	/** Aligned offset Huffman alphabet */
-	struct huffman_alphabet alignoffset;
-	/** Aligned offset raw symbols
-	 *
-	 * Must immediately follow the aligned offset Huffman
-	 * alphabet.
-	 */
-	huffman_raw_symbol_t alignoffset_raw[LZX_ALIGNOFFSET_CODES];
-	/** Aligned offset code lengths */
-	uint8_t alignoffset_lengths[LZX_ALIGNOFFSET_CODES];
+  /** Aligned offset Huffman alphabet */
+  struct huffman_alphabet alignoffset;
+  /** Aligned offset raw symbols
+   *
+   * Must immediately follow the aligned offset Huffman
+   * alphabet.
+   */
+  huffman_raw_symbol_t alignoffset_raw[LZX_ALIGNOFFSET_CODES];
+  /** Aligned offset code lengths */
+  uint8_t alignoffset_lengths[LZX_ALIGNOFFSET_CODES];
 
-	/** Pretree Huffman alphabet */
-	struct huffman_alphabet pretree;
-	/** Pretree raw symbols
-	 *
-	 * Must immediately follow the pretree Huffman alphabet.
-	 */
-	huffman_raw_symbol_t pretree_raw[LZX_PRETREE_CODES];
-	/** Preetree code lengths */
-	uint8_t pretree_lengths[LZX_PRETREE_CODES];
+  /** Pretree Huffman alphabet */
+  struct huffman_alphabet pretree;
+  /** Pretree raw symbols
+   *
+   * Must immediately follow the pretree Huffman alphabet.
+   */
+  huffman_raw_symbol_t pretree_raw[LZX_PRETREE_CODES];
+  /** Preetree code lengths */
+  uint8_t pretree_lengths[LZX_PRETREE_CODES];
 
-	/** Main Huffman alphabet */
-	struct huffman_alphabet main;
-	/** Main raw symbols
-	 *
-	 * Must immediately follow the main Huffman alphabet.
-	 */
-	huffman_raw_symbol_t main_raw[LZX_MAIN_CODES];
-	/** Main code lengths */
-	struct {
-		/** Literals */
-		uint8_t literals[LZX_MAIN_LIT_CODES];
-		/** Remaining symbols */
-		uint8_t remainder[ LZX_MAIN_CODES - LZX_MAIN_LIT_CODES ];
-	} __attribute__ (( packed )) main_lengths;
+  /** Main Huffman alphabet */
+  struct huffman_alphabet main;
+  /** Main raw symbols
+   *
+   * Must immediately follow the main Huffman alphabet.
+   */
+  huffman_raw_symbol_t main_raw[LZX_MAIN_CODES];
+  /** Main code lengths */
+  struct
+  {
+    /** Literals */
+    uint8_t literals[LZX_MAIN_LIT_CODES];
+    /** Remaining symbols */
+    uint8_t remainder[ LZX_MAIN_CODES - LZX_MAIN_LIT_CODES ];
+  } __attribute__ ((packed)) main_lengths;
 
-	/** Length Huffman alphabet */
-	struct huffman_alphabet length;
-	/** Length raw symbols
-	 *
-	 * Must immediately follow the length Huffman alphabet.
-	 */
-	huffman_raw_symbol_t length_raw[LZX_LENGTH_CODES];
-	/** Length code lengths */
-	uint8_t length_lengths[LZX_LENGTH_CODES];
+  /** Length Huffman alphabet */
+  struct huffman_alphabet length;
+  /** Length raw symbols
+   *
+   * Must immediately follow the length Huffman alphabet.
+   */
+  huffman_raw_symbol_t length_raw[LZX_LENGTH_CODES];
+  /** Length code lengths */
+  uint8_t length_lengths[LZX_LENGTH_CODES];
 };
 
 /**
  * Calculate number of footer bits for a given position slot
  *
- * @v position_slot	Position slot
- * @ret footer_bits 	Number of footer bits
+ * @v position_slot Position slot
+ * @ret footer_bits   Number of footer bits
  */
-static inline unsigned int lzx_footer_bits ( unsigned int position_slot ) {
-
-	if ( position_slot < 2 ) {
-		return 0;
-	} else if ( position_slot < 38 ) {
-		return ( ( position_slot / 2 ) - 1 );
-	} else {
-		return 17;
-	}
+static inline unsigned int lzx_footer_bits (unsigned int position_slot)
+{
+  if (position_slot < 2)
+  {
+    return 0;
+  }
+  else
+    if (position_slot < 38)
+    {
+      return ((position_slot / 2) - 1);
+    }
+    else
+    {
+      return 17;
+    }
 }
 
-extern ssize_t lzx_decompress ( const void *data, size_t len, void *buf );
+extern ssize_t lzx_decompress (const void *data, size_t len, void *buf);
 
 #endif /* _LZX_H */

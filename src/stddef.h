@@ -33,8 +33,8 @@
 
 #define offsetof( type, member ) ( ( size_t ) &( ( type * ) NULL )->member )
 
-#define container_of( ptr, type, member ) ( {				\
-	const typeof ( ( ( type * ) NULL )->member ) *__mptr = (ptr);	\
-	( type * ) ( ( void * ) __mptr - offsetof ( type, member ) ); } )
+#define container_of( ptr, type, member ) ( {       \
+    const typeof ( ( ( type * ) NULL )->member ) *__mptr = (ptr); \
+    ( type * ) ( ( void * ) __mptr - offsetof ( type, member ) ); } )
 
 #endif /* _STDDEF_H */
