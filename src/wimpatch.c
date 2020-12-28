@@ -270,7 +270,7 @@ static int wim_patch_header (struct wim_patch *patch,
     DBG ("...patched WIM %s boot index %d->%d\n", region->name,
          patch->boot_index, patch->header.boot_index);
   }
-  memcpy (data, (((void *) &patch->header) + offset), len);
+  memcpy (data, (uint8_t *) &patch->header + offset, len);
   return 0;
 }
 
@@ -341,7 +341,7 @@ static int wim_patch_lookup_boot (struct wim_patch *patch,
   memcpy (&entry.resource, &patch->header.boot,
           sizeof (entry.resource));
   /* Copy lookup table entry */
-  memcpy (data, (((void *) &entry) + offset), len);
+  memcpy (data, (uint8_t *) &entry + offset, len);
   return 0;
 }
 
@@ -373,7 +373,7 @@ static int wim_patch_lookup_file (struct wim_patch *patch __unused,
   entry.refcnt = 1;
   wim_hash (vfile, &entry.hash);
   /* Copy lookup table entry */
-  memcpy (data, (((void *) &entry) + offset), len);
+  memcpy (data, (uint8_t *) &entry + offset, len);
   DBG ("...patched WIM %s %s\n", region->name, vfile->name);
   return 0;
 }
@@ -422,7 +422,7 @@ static int wim_patch_dir_subdir (struct wim_patch *patch,
   assert (offset < sizeof (subdir));
   assert (len <= (sizeof (subdir) - offset));
   /* Copy subdirectory offset */
-  memcpy (data, (((void *) &subdir) + offset), len);
+  memcpy (data, (uint8_t *) &subdir + offset, len);
   DBG ("...patched WIM %s %s %#llx\n", region->name, dir->name,
        (patch->header.boot.offset + subdir));
   return 0;
@@ -490,7 +490,7 @@ static int wim_patch_dir_file (struct wim_patch *patch __unused,
     entry.name[i] = vfile->name[i];
   }
   /* Copy directory entry */
-  memcpy (data, (((void *) &entry) + offset), len);
+  memcpy (data, (uint8_t *) &entry + offset, len);
   DBG ("...patched WIM %s %s\n", region->name, vfile->name);
   return 0;
 }
@@ -523,7 +523,7 @@ static int wim_patch_region (struct wim_patch *patch,
   {
     return 0;
   }
-  data += skip;
+  data = (uint8_t *) data + skip;
   offset += skip;
   len -= skip;
   /* Convert to relative offset within this region */

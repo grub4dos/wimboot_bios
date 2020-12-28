@@ -29,12 +29,12 @@
 
 #include <stdint.h>
 
-#define NULL ( ( void * ) 0 )
+#define NULL (( void * ) 0)
 
-#define offsetof( type, member ) ( ( size_t ) &( ( type * ) NULL )->member )
+#define offsetof(type, member) ((size_t) &((type *) NULL)->member)
 
-#define container_of( ptr, type, member ) ( {       \
-    const typeof ( ( ( type * ) NULL )->member ) *__mptr = (ptr); \
-    ( type * ) ( ( void * ) __mptr - offsetof ( type, member ) ); } )
+#define container_of(ptr, type, member) ({       \
+    const typeof (((type *) NULL)->member) *__mptr = (ptr); \
+    (type *) (( uint8_t *) __mptr - offsetof (type, member));})
 
 #endif /* _STDDEF_H */

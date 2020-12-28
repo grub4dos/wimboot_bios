@@ -57,7 +57,7 @@ static ssize_t lznt1_block (const void *data, size_t limit, size_t offset,
     /* Extract tag */
     if (tag_bit == 0)
     {
-      tag = * ((uint8_t *) (data + offset));
+      tag = * ((uint8_t *) data + offset);
       offset++;
       if (offset == limit)
       {
@@ -74,7 +74,7 @@ static ssize_t lznt1_block (const void *data, size_t limit, size_t offset,
              "%#zx\n", offset);
         return -1;
       }
-      tuple = (data + offset);
+      tuple = (void *) ((uint8_t *)data + offset);
       offset += sizeof (*tuple);
       copy_len = LZNT1_VALUE_LEN (*tuple, split);
       block_out_len += copy_len;
@@ -92,7 +92,7 @@ static ssize_t lznt1_block (const void *data, size_t limit, size_t offset,
     else
     {
       /* Uncompressed value */
-      copy_src = (data + offset);
+      copy_src = (uint8_t *)data + offset;
       if (copy_dest)
       {
         * (copy_dest++) = *copy_src;
@@ -136,7 +136,7 @@ ssize_t lznt1_decompress (const void *data, size_t len, void *buf)
     /* Check for end marker */
     if ((offset + sizeof (*end)) == len)
     {
-      end = (data + offset);
+      end = (uint8_t *)data + offset;
       if (*end == 0)
       {
         break;
@@ -148,7 +148,7 @@ ssize_t lznt1_decompress (const void *data, size_t len, void *buf)
       DBG ("LZNT1 block header overrun at %#zx\n", offset);
       return -1;
     }
-    header = (data + offset);
+    header = (void *) ((uint8_t *)data + offset);
     offset += sizeof (*header);
     /* Process block */
     block_len = LZNT1_BLOCK_LEN (*header);
@@ -158,7 +158,7 @@ ssize_t lznt1_decompress (const void *data, size_t len, void *buf)
       DBG2 ("LZNT1 compressed block %#zx+%#zx\n",
             offset, block_len);
       limit = (offset + block_len);
-      block = (buf ? (buf + out_len) : NULL);
+      block = (buf ? ((uint8_t *)buf + out_len) : NULL);
       block_out_len = lznt1_block (data, limit, offset,
                                    block);
       if (block_out_len < 0)
@@ -181,7 +181,7 @@ ssize_t lznt1_decompress (const void *data, size_t len, void *buf)
             offset, block_len);
       if (buf)
       {
-        memcpy ((buf + out_len), (data + offset),
+        memcpy ((uint8_t *)buf + out_len, (uint8_t *)data + offset,
                 block_len);
       }
       offset += block_len;

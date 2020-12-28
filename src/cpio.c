@@ -87,7 +87,7 @@ int cpio_extract (void *data, size_t len,
       {
         break;
       }
-      data += sizeof (*pad);
+      data = (uint8_t *) data + sizeof (*pad);
       len -= sizeof (*pad);
     }
     /* Stop if we have reached the end of the archive */
@@ -112,10 +112,9 @@ int cpio_extract (void *data, size_t len,
     /* Extract file parameters */
     file_name = ((void *) (cpio + 1));
     file_name_len = cpio_value (cpio->c_namesize);
-    file_data = (data + cpio_align (sizeof (*cpio) +
-                                    file_name_len));
+    file_data = (uint8_t *)data + cpio_align (sizeof (*cpio) + file_name_len);
     file_len = cpio_value (cpio->c_filesize);
-    cpio_len = (file_data + file_len - data);
+    cpio_len = (uint8_t *)file_data + file_len - (uint8_t *)data;
     if (cpio_len < len)
     {
       cpio_len = cpio_align (cpio_len);
@@ -136,7 +135,7 @@ int cpio_extract (void *data, size_t len,
       return rc;
     }
     /* Move to next file */
-    data += cpio_len;
+    data = (uint8_t *)data + cpio_len;
     len -= cpio_len;
   }
 }

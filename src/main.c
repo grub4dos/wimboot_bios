@@ -213,7 +213,7 @@ static int is_empty_pgh (const void *pgh)
 static void read_file (struct vdisk_file *file, void *data, size_t offset,
                        size_t len)
 {
-  memcpy (data, (file->opaque + offset), len);
+  memcpy (data, (uint8_t *) file->opaque + offset, len);
 }
 
 /**
@@ -248,7 +248,7 @@ static struct vdisk_file *add_bootmgr (const void *data, size_t len)
   {
     /* Initialise checks */
     decompress = NULL;
-    compressed = (data + offset);
+    compressed = (uint8_t *)data + offset;
     compressed_len = (len - offset);
     /* Check for an embedded LZNT1-compressed bootmgr.exe.
      * Since there is no way for LZNT1 to compress the
@@ -306,7 +306,7 @@ static struct vdisk_file *add_bootmgr (const void *data, size_t len)
     DBG ("...extracting embedded bootmgr.exe\n");
     padded_len = ((decompressed_len + PAGE_SIZE - 1) &
                   ~ (PAGE_SIZE - 1));
-    initrd -= padded_len;
+    initrd = (uint8_t *) initrd - padded_len;
     initrd_len += padded_len;
     decompress (compressed, compressed_len, initrd);
     /* Add decompressed image */
@@ -397,7 +397,7 @@ int main (void)
   {
     padded_len = ((bootmgr->len + PAGE_SIZE - 1) &
                   ~ (PAGE_SIZE - 1));
-    raw_pe = (initrd - padded_len);
+    raw_pe = (uint8_t *) initrd - padded_len;
     bootmgr->read (bootmgr, raw_pe, 0, bootmgr->len);
   }
   /* Load bootmgr.exe into memory */
@@ -412,10 +412,10 @@ int main (void)
   bootapps.regions[WIMBOOT_REGION].num_pages = page_len (_start, _end);
   bootapps.regions[PE_REGION].start_page = page_start (pe.base);
   bootapps.regions[PE_REGION].num_pages =
-          page_len (pe.base, (pe.base + pe.len));
+          page_len (pe.base, (uint8_t *) pe.base + pe.len);
   bootapps.regions[INITRD_REGION].start_page = page_start (initrd);
   bootapps.regions[INITRD_REGION].num_pages =
-          page_len (initrd, initrd + initrd_len);
+          page_len (initrd, (uint8_t *) initrd + initrd_len);
   /* Jump to PE image */
   DBG ("Entering bootmgr.exe with parameters at %p\n", &bootapps);
   if (cmdline_pause)

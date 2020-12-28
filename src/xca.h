@@ -69,22 +69,22 @@ static inline unsigned int xca_huf_len (const struct xca_huf_len *lengths,
 }
 
 /** Get word from source data stream */
-#define XCA_GET16( src ) ( {      \
+#define XCA_GET16(src) ({      \
     const uint16_t *src16 = src;    \
-    src += sizeof ( *src16 );   \
-    *src16; } )
+    src = (uint8_t *) src + sizeof (*src16);   \
+    *src16;})
 
 /** Get byte from source data stream */
-#define XCA_GET8( src ) ( {     \
+#define XCA_GET8(src) ({     \
     const uint8_t *src8 = src;    \
-    src += sizeof ( *src8 );    \
-    *src8; } )
+    src = (uint8_t *) src + sizeof (*src8);    \
+    *src8;})
 
 /** XCA source data stream end marker */
 #define XCA_END_MARKER 256
 
 /** XCA block size */
-#define XCA_BLOCK_SIZE ( 64 * 1024 )
+#define XCA_BLOCK_SIZE (64 * 1024)
 
 extern ssize_t xca_decompress (const void *data, size_t len, void *buf);
 

@@ -69,50 +69,50 @@ int load_pe (const void *data, size_t len, struct loaded_pe *pe)
     DBG ("PE header outside file\n");
     return -1;
   }
-  pehdr = (data + pehdr_offset);
+  pehdr = (void *) ((uint8_t *) data + pehdr_offset);
   if (pehdr->magic != PE_HEADER_MAGIC)
   {
     DBG ("Bad PE magic %08x\n", pehdr->magic);
     return -1;
   }
   opthdr_offset = (pehdr_offset + sizeof (*pehdr));
-  opthdr = (data + opthdr_offset);
+  opthdr = (void *) ((uint8_t *)data + opthdr_offset);
   pe->base = ((void *) (intptr_t) (opthdr->base));
   section_offset = (opthdr_offset + pehdr->coff.opthdr_len);
-  section = (data + section_offset);
+  section = (void *) ((uint8_t *)data + section_offset);
   /* Load header into memory */
   DBG2 ("...headers to %p+%#x\n", pe->base, opthdr->header_len);
   memcpy (pe->base, data, opthdr->header_len);
-  end = (pe->base + opthdr->header_len);
+  end = (void *) ((uint8_t *)pe->base + opthdr->header_len);
   /* Load each section into memory */
   for (i = 0 ; i < pehdr->coff.num_sections ; i++, section++)
   {
     memset (name, 0, sizeof (name));
     memcpy (name, section->name, sizeof (section->name));
-    section_base = (pe->base + section->virtual);
+    section_base = (void *) ((uint8_t *)pe->base + section->virtual);
     filesz = section->raw_len;
     memsz = section->misc.virtual_len;
     DBG2 ("...from %#05x to %p+%#zx/%#zx (%s)\n",
           section->raw, section_base, filesz, memsz, name);
     memset (section_base, 0, memsz);
-    memcpy (section_base, (data + section->raw), filesz);
-    if (end < (section_base + memsz))
+    memcpy (section_base, (void *) ((uint8_t *)data + section->raw), filesz);
+    if ((uint8_t *)end < (uint8_t *)section_base + memsz)
     {
-      end = (section_base + memsz);
+      end = (uint8_t *)section_base + memsz;
     }
   }
-  pe->len = (((end - pe->base) + opthdr->section_align - 1)
+  pe->len = (((uint8_t *)end - (uint8_t *)pe->base + opthdr->section_align - 1)
              & ~ (opthdr->section_align - 1));
   /* Load copy of raw image into memory immediately after loaded
    * sections.  This seems to be used for verification of X.509
    * signatures.
    */
-  raw_base = (pe->base + pe->len);
+  raw_base = (uint8_t *)pe->base + pe->len;
   memcpy (raw_base, data, len);
   pe->len += len;
   DBG2 ("...raw copy to %p+%#zx\n", raw_base, len);
   /* Extract entry point */
-  pe->entry = (pe->base + opthdr->entry);
+  pe->entry = (void *) ((uint8_t *)pe->base + opthdr->entry);
   DBG2 ("...entry point %p\n", pe->entry);
   return 0;
 }

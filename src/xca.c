@@ -43,7 +43,7 @@
 ssize_t xca_decompress (const void *data, size_t len, void *buf)
 {
   const void *src = data;
-  const void *end = (src + len);
+  const void *end = (uint8_t *)src + len;
   uint8_t *out = buf;
   size_t out_len = 0;
   size_t out_len_threshold = 0;
@@ -67,12 +67,12 @@ ssize_t xca_decompress (const void *data, size_t len, void *buf)
     {
       /* Construct symbol lengths */
       lengths = src;
-      src += sizeof (*lengths);
+      src = (uint8_t *)src + sizeof (*lengths);
       if (src > end)
       {
         DBG ("XCA too short to hold Huffman lengths "
              "table at input offset %#zx\n",
-             (src - data));
+             (uint8_t *)src - (uint8_t *)data);
         return -1;
       }
       for (raw = 0 ; raw < XCA_CODES ; raw++)
@@ -117,7 +117,7 @@ ssize_t xca_decompress (const void *data, size_t len, void *buf)
     }
     else
       if ((raw == XCA_END_MARKER) &&
-          (src >= (end - 1)))
+          ((uint8_t *)src >= (uint8_t *)end - 1))
       {
         /* End marker symbol */
         return out_len;

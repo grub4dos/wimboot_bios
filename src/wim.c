@@ -283,7 +283,7 @@ int wim_read (struct vdisk_file *file, struct wim_header *header,
     }
     memcpy (data, (wim_chunk_buffer.data + skip_len), frag_len);
     /* Move to next chunk */
-    data += frag_len;
+    data = (uint8_t *) data + frag_len;
     offset += frag_len;
     len -= frag_len;
   }

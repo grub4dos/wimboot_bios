@@ -21,9 +21,7 @@ RM		:= rm
 DIFF		:= diff
 CUT		:= cut
 
-HOST_CFLAGS += -Wall -W -Werror
-
-CFLAGS += -Os -ffreestanding -Wall -W -Werror -nostdinc -I. -fshort-wchar
+CFLAGS += -Os -ffreestanding -Wall -W -Werror -Wextra -nostdinc -I. -fshort-wchar -Wpointer-arith
 CFLAGS += -DVERSION="\"$(VERSION)\""
 
 CFLAGS += -m32 -march=i386 -malign-double -fno-pic

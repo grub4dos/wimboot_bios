@@ -60,7 +60,7 @@ static int lzx_accumulate (struct lzx *lzx, unsigned int bits)
   if ((lzx->bits < bits) &&
       (lzx->input.offset < lzx->input.len))
   {
-    src16 = ((void *) lzx->input.data + lzx->input.offset);
+    src16 = (void *) ((uint8_t *) lzx->input.data + lzx->input.offset);
     lzx->input.offset += sizeof (*src16);
     lzx->accumulator |= (*src16 << (16 - lzx->bits));
     lzx->bits += 16;
