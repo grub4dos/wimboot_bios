@@ -17,14 +17,15 @@
  * 02110-1301, USA.
  */
 
-FILE_LICENCE (GPL2_OR_LATER);
-
+#include <stdint.h>
+#include <string.h>
+#include "wimboot.h"
 #include <stddef.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <errno.h>
 #include <wchar.h>
-#include <ipxe/vsprintf.h>
+#include <vsprintf.h>
 
 /** @file */
 
@@ -534,3 +535,4 @@ int printf (const char *fmt, ...)
   va_end (args);
   return i;
 }
+

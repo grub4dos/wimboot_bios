@@ -16,7 +16,6 @@ ECHO		:= echo
 OBJCOPY 	:= objcopy
 AR		:= ar
 RANLIB		:= ranlib
-CP		:= cp
 RM		:= rm
 DIFF		:= diff
 CUT		:= cut
@@ -65,7 +64,6 @@ all : wimboot
 
 wimboot : wimboot.elf
 	$(OBJCOPY) -Obinary $< $@
-	cp $@ ../$@
 
 wimboot.elf : $(OBJECTS) script.lds
 	$(LD) -m elf_i386 -T script.lds -o $@ $(OBJECTS)
@@ -77,4 +75,4 @@ wimboot.elf : $(OBJECTS) script.lds
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean :
-	rm -f *.o *.elf wimboot ../wimboot
+	$(RM) -f *.o *.elf wimboot
