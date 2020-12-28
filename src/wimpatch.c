@@ -39,6 +39,11 @@
 /** Directory into which files are injected */
 #define WIM_INJECT_DIR "\\Windows\\System32"
 
+#if __GNUC__ >= 9
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
+#endif
+
 struct wim_patch;
 
 /** A region of a patched WIM file */
@@ -791,3 +796,7 @@ void patch_wim ( struct vdisk_file *file, void *data, size_t offset,
 		}
 	}
 }
+
+#if __GNUC__ >= 9
+#pragma GCC diagnostic pop
+#endif
