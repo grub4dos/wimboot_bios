@@ -53,129 +53,129 @@
 /** 32 bit protected mode flat data segment */
 #define PREFIX_FLAT_DS 0x18
 
-	.text
-	.code16
-	.arch	i386
-	.org	0
-	.section ".prefix", "ax", @progbits
+    .text
+    .code16
+    .arch     i386
+    .org      0
+    .section  ".prefix", "ax", @progbits
 
-	.org	0x1f1
+    .org      0x1f1
 setup_sects:
-	.byte	SETUP_SECTS
+    .byte     SETUP_SECTS
 
-	.org	0x1fe
+    .org      0x1fe
 boot_flag:
-	.word	0xaa55
+    .word     0xaa55
 
-	.org	0x200
+    .org      0x200
 jump:
-	.byte	0xeb, setup - 1f
+    .byte     0xeb, setup - 1f
 1:
 
-	.org	0x202
+    .org      0x202
 header:
-	.ascii	"HdrS"
+    .ascii    "HdrS"
 
-	.org	0x206
+    .org      0x206
 version:
-	.word	0x203	/* Version 2.03 */
+    .word     0x203    /* Version 2.03 */
 
-	.org	0x211
+    .org      0x211
 loadflags:
-	.byte	LOADED_HIGH
+    .byte     LOADED_HIGH
 
-	.org	0x218
+    .org      0x218
 ramdisk_image:
-	.long	0	/* Filled in by boot loader */
+    .long     0    /* Filled in by boot loader */
 
-	.org	0x21c
+    .org      0x21c
 ramdisk_size:
-	.long	0	/* Filled in by boot loader */
+    .long     0    /* Filled in by boot loader */
 
-	.org	0x228
+    .org      0x228
 cmd_line_ptr:
-	.long	0	/* Filled in by boot loader */
+    .long     0    /* Filled in by boot loader */
 
-	.org	0x22c
+    .org      0x22c
 ramdisk_max:
-	.long	0x7fffffff
+    .long     0x7fffffff
 
-	/* Setup code */
+    /* Setup code */
 setup:
-	/* Reset %cs so that labels work */
-	pushw	%ds
-	pushw	$1f
-	lret
+    /* Reset %cs so that labels work */
+    pushw     %ds
+    pushw     $1f
+    lret
 1:
-	/* Fix up GDT */
-	xorl	%eax, %eax
-	movw	%cs, %ax
-	shll	$4, %eax
-	addl	%eax, ( gdt + 2 )
-	addl	%eax, ( gdt + PREFIX_CS + 2 )
+    /* Fix up GDT */
+    xorl      %eax, %eax
+    movw      %cs, %ax
+    shll      $4, %eax
+    addl      %eax, (gdt + 2)
+    addl      %eax, (gdt + PREFIX_CS + 2)
 
-	/* Switch to protected mode and jump to startup code */
-	cli
-	data32 lgdt gdt
-	movl	%cr0, %eax
-	orb	$CR0_PE, %al
-	movl	%eax, %cr0
-	data32 ljmp $PREFIX_CS, $1f
-	.code32
+    /* Switch to protected mode and jump to startup code */
+    cli
+    data32    lgdt  gdt
+    movl      %cr0, %eax
+    orb       $CR0_PE, %al
+    movl      %eax, %cr0
+    data32    ljmp  $PREFIX_CS, $1f
+    .code32
 1:
-	/* Load data segment registers */
-	movw	$PREFIX_FLAT_DS, %ax
-	movw	%ax, %ds
-	movw	%ax, %es
-	movw	%ax, %fs
-	movw	%ax, %gs
-	movw	%ax, %ss
+    /* Load data segment registers */
+    movw      $PREFIX_FLAT_DS, %ax
+    movw      %ax, %ds
+    movw      %ax, %es
+    movw      %ax, %fs
+    movw      %ax, %gs
+    movw      %ax, %ss
 
-	/* Zero real-mode and protected-mode .bss sections */
-	xorl	%eax, %eax
-	movl	$_bss16, %edi
-	movl	$_bss16_len, %ecx
-	rep stosb
-	movl	$_bss, %edi
-	movl	$_bss_len, %ecx
-	rep stosb
+    /* Zero real-mode and protected-mode .bss sections */
+    xorl      %eax, %eax
+    movl      $_bss16, %edi
+    movl      $_bss16_len, %ecx
+    rep       stosb
+    movl      $_bss, %edi
+    movl      $_bss_len, %ecx
+    rep       stosb
 
-	/* Copy payload to runtime address */
-	movl	$LOADED_HIGH_ADDRESS, %esi
-	movl	$_payload, %edi
-	movl	$_payload_len, %ecx
-	cld
-	rep movsb
+    /* Copy payload to runtime address */
+    movl      $LOADED_HIGH_ADDRESS, %esi
+    movl      $_payload, %edi
+    movl      $_payload_len, %ecx
+    cld
+    rep       movsb
 
-	/* Copy parameters required by runtime */
-	movl	%cs:cmd_line_ptr, %eax
-	movl	%eax, i386(cmdline)
-	movl	%cs:ramdisk_image, %eax
-	movl	%eax, i386(initrd)
-	movl	%cs:ramdisk_size, %eax
-	movl	%eax, i386(initrd_len)
+    /* Copy parameters required by runtime */
+    movl      %cs:cmd_line_ptr, %eax
+    movl      %eax, i386(cmdline)
+    movl      %cs:ramdisk_image, %eax
+    movl      %eax, i386(initrd)
+    movl      %cs:ramdisk_size, %eax
+    movl      %eax, i386(initrd_len)
 
-	/* Jump to payload */
-	ljmp	$PREFIX_FLAT_CS, $i386(startup)
-	.size	setup, . - setup
+    /* Jump to payload */
+    ljmp      $PREFIX_FLAT_CS, $i386(startup)
+    .size     setup, . - setup
 
-	/* Global descriptor table */
+    /* Global descriptor table */
 gdt:
-	.word	gdt_limit
-	.long	gdt
-	/* 32-bit protected mode code segment based at real-mode %cs:0000 */
-	.org	( gdt + PREFIX_CS )
-	.word	0xffff, 0
-	.byte	0, 0x9f, 0xcf, 0
-	/* 32 bit protected mode flat code segment */
-	.org	( gdt + PREFIX_FLAT_CS )
-	.word	0xffff, 0
-	.byte	0, 0x9f, 0xcf, 0
-	/* 32 bit protected mode flat data segment */
-	.org	( gdt + PREFIX_FLAT_DS )
-	.word	0xffff, 0
-	.byte	0, 0x93, 0xcf, 0	
-	.size	gdt, . - gdt
-	.equ	gdt_limit, . - gdt - 1
+    .word     gdt_limit
+    .long     gdt
+    /* 32-bit protected mode code segment based at real-mode %cs:0000 */
+    .org      (gdt + PREFIX_CS)
+    .word     0xffff, 0
+    .byte     0, 0x9f, 0xcf, 0
+    /* 32 bit protected mode flat code segment */
+    .org      (gdt + PREFIX_FLAT_CS)
+    .word     0xffff, 0
+    .byte     0, 0x9f, 0xcf, 0
+    /* 32 bit protected mode flat data segment */
+    .org      (gdt + PREFIX_FLAT_DS)
+    .word     0xffff, 0
+    .byte     0, 0x93, 0xcf, 0
+    .size     gdt, . - gdt
+    .equ      gdt_limit, . - gdt - 1
 
-	.org	( ( SETUP_SECTS + 1 ) * SECTOR_SIZE )
+    .org      ((SETUP_SECTS + 1) * SECTOR_SIZE)
