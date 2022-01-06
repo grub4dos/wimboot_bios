@@ -39,11 +39,6 @@
 /** Directory into which files are injected */
 #define WIM_INJECT_DIR "\\Windows\\System32"
 
-#if __GNUC__ >= 9
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
-#endif
-
 struct wim_patch;
 
 /** A region of a patched WIM file */
@@ -210,27 +205,33 @@ static int wim_inject_file (struct vdisk_file *vfile)
   const char *ext;
   /* Ignore non-existent files */
   if (! vfile->read)
-  {
     return 0;
-  }
+  /* Ignore wimboot itself */
+  if (strcasecmp (vfile->name, "wimboot") == 0)
+    return 0;
+  /* Ignore bootmgr files */
+  if (strcasecmp (vfile->name, "bootmgr") == 0)
+    return 0;
+  if (strcasecmp (vfile->name, "bootmgr.exe") == 0)
+    return 0;
   /* Ignore BCD files */
   if (strcasecmp (vfile->name, "BCD") == 0)
-  {
     return 0;
-  }
   /* Locate file extension */
   name_len = strlen (vfile->name);
   ext = ((name_len > 4) ? (vfile->name + name_len - 4) : "");
   /* Ignore .wim files */
   if (strcasecmp (ext, ".wim") == 0)
-  {
     return 0;
-  }
   /* Ignore .sdi files */
   if (strcasecmp (ext, ".sdi") == 0)
-  {
     return 0;
-  }
+  /* Ignore .efi files */
+  if (strcasecmp (ext, ".efi") == 0)
+    return 0;
+  /* Ignore .ttf files */
+  if (strcasecmp (ext, ".ttf") == 0)
+    return 0;
   return 1;
 }
 
@@ -255,20 +256,20 @@ static int wim_patch_header (struct wim_patch *patch,
   /* Copy patched header */
   if (patch->lookup.offset != patch->header.lookup.offset)
   {
-    DBG ("...patched WIM %s lookup table %#llx->%#llx\n",
-         region->name, patch->lookup.offset,
-         patch->header.lookup.offset);
+    DBG2 ("...patched WIM %s lookup table %#llx->%#llx\n",
+          region->name, patch->lookup.offset,
+          patch->header.lookup.offset);
   }
   if (patch->boot.offset != patch->header.boot.offset)
   {
-    DBG ("...patched WIM %s boot metadata %#llx->%#llx\n",
-         region->name, patch->boot.offset,
-         patch->header.boot.offset);
+    DBG2 ("...patched WIM %s boot metadata %#llx->%#llx\n",
+          region->name, patch->boot.offset,
+          patch->header.boot.offset);
   }
   if (patch->boot_index != patch->header.boot_index)
   {
-    DBG ("...patched WIM %s boot index %d->%d\n", region->name,
-         patch->boot_index, patch->header.boot_index);
+    DBG2 ("...patched WIM %s boot index %d->%d\n", region->name,
+          patch->boot_index, patch->header.boot_index);
   }
   memcpy (data, (uint8_t *) &patch->header + offset, len);
   return 0;
@@ -374,7 +375,7 @@ static int wim_patch_lookup_file (struct wim_patch *patch __unused,
   wim_hash (vfile, &entry.hash);
   /* Copy lookup table entry */
   memcpy (data, (uint8_t *) &entry + offset, len);
-  DBG ("...patched WIM %s %s\n", region->name, vfile->name);
+  DBG2 ("...patched WIM %s %s\n", region->name, vfile->name);
   return 0;
 }
 
@@ -423,8 +424,8 @@ static int wim_patch_dir_subdir (struct wim_patch *patch,
   assert (len <= (sizeof (subdir) - offset));
   /* Copy subdirectory offset */
   memcpy (data, (uint8_t *) &subdir + offset, len);
-  DBG ("...patched WIM %s %s %#llx\n", region->name, dir->name,
-       (patch->header.boot.offset + subdir));
+  DBG2 ("...patched WIM %s %s %#llx\n", region->name, dir->name,
+        (patch->header.boot.offset + subdir));
   return 0;
 }
 
@@ -491,7 +492,7 @@ static int wim_patch_dir_file (struct wim_patch *patch __unused,
   }
   /* Copy directory entry */
   memcpy (data, (uint8_t *) &entry + offset, len);
-  DBG ("...patched WIM %s %s\n", region->name, vfile->name);
+  DBG2 ("...patched WIM %s %s\n", region->name, vfile->name);
   return 0;
 }
 
@@ -816,7 +817,3 @@ void patch_wim (struct vdisk_file *file, void *data, size_t offset,
     }
   }
 }
-
-#if __GNUC__ >= 9
-  #pragma GCC diagnostic pop
-#endif

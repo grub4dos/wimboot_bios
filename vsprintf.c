@@ -218,16 +218,15 @@ size_t vcprintf (struct printf_context *ctx, const char *fmt, va_list args)
       {
         flags |= ALT_FORM;
       }
+      else if (*fmt == '0')
+      {
+        flags |= ZPAD;
+      }
       else
-        if (*fmt == '0')
-        {
-          flags |= ZPAD;
-        }
-        else
-        {
-          /* End of flag characters */
-          break;
-        }
+      {
+        /* End of flag characters */
+        break;
+      }
     }
     /* Process field width */
     width = 0;
@@ -251,20 +250,18 @@ size_t vcprintf (struct printf_context *ctx, const char *fmt, va_list args)
       {
         length--;
       }
+      else if (*fmt == 'l')
+      {
+        length++;
+      }
+      else if (*fmt == 'z')
+      {
+        length = &type_sizes[SIZE_T_LEN];
+      }
       else
-        if (*fmt == 'l')
-        {
-          length++;
-        }
-        else
-          if (*fmt == 'z')
-          {
-            length = &type_sizes[SIZE_T_LEN];
-          }
-          else
-          {
-            break;
-          }
+      {
+        break;
+      }
     }
     /* Process conversion specifier */
     ptr = tmp_buf + sizeof (tmp_buf) - 1;
@@ -286,68 +283,62 @@ size_t vcprintf (struct printf_context *ctx, const char *fmt, va_list args)
         ptr = tmp_buf;
       }
     }
-    else
-      if (*fmt == 's')
+    else if (*fmt == 's')
+    {
+      if (length < &type_sizes[LONG_LEN])
       {
-        if (length < &type_sizes[LONG_LEN])
-        {
-          ptr = va_arg (args, char *);
-        }
-        else
-        {
-          wptr = va_arg (args, wchar_t *);
-        }
-        if ((ptr == NULL) && (wptr == NULL))
-        {
-          ptr = "<NULL>";
-        }
+        ptr = va_arg (args, char *);
       }
       else
-        if (*fmt == 'p')
-        {
-          intptr_t ptrval;
-          ptrval = (intptr_t) va_arg (args, void *);
-          ptr = format_hex (ptr, ptrval, width,
-                            (ALT_FORM | LCASE));
-        }
-        else
-          if ((*fmt & ~0x20) == 'X')
-          {
-            unsigned long long hex;
-            flags |= (*fmt & 0x20);   /* LCASE */
-            if (*length >= sizeof (unsigned long long))
-            {
-              hex = va_arg (args, unsigned long long);
-            }
-            else
-              if (*length >= sizeof (unsigned long))
-              {
-                hex = va_arg (args, unsigned long);
-              }
-              else
-              {
-                hex = va_arg (args, unsigned int);
-              }
-            ptr = format_hex (ptr, hex, width, flags);
-          }
-          else
-            if ((*fmt == 'd') || (*fmt == 'i'))
-            {
-              signed long decimal;
-              if (*length >= sizeof (signed long))
-              {
-                decimal = va_arg (args, signed long);
-              }
-              else
-              {
-                decimal = va_arg (args, signed int);
-              }
-              ptr = format_decimal (ptr, decimal, width, flags);
-            }
-            else
-            {
-              * (--ptr) = *fmt;
-            }
+      {
+        wptr = va_arg (args, wchar_t *);
+      }
+      if ((ptr == NULL) && (wptr == NULL))
+      {
+        ptr = "<NULL>";
+      }
+    }
+    else if (*fmt == 'p')
+    {
+      intptr_t ptrval;
+      ptrval = (intptr_t) va_arg (args, void *);
+      ptr = format_hex (ptr, ptrval, width, (ALT_FORM | LCASE));
+    }
+    else if ((*fmt & ~0x20) == 'X')
+    {
+      unsigned long long hex;
+      flags |= (*fmt & 0x20);   /* LCASE */
+      if (*length >= sizeof (unsigned long long))
+      {
+        hex = va_arg (args, unsigned long long);
+      }
+      else if (*length >= sizeof (unsigned long))
+      {
+        hex = va_arg (args, unsigned long);
+      }
+      else
+      {
+        hex = va_arg (args, unsigned int);
+      }
+      ptr = format_hex (ptr, hex, width, flags);
+    }
+    else if ((*fmt == 'd') || (*fmt == 'i'))
+    {
+      signed long decimal;
+      if (*length >= sizeof (signed long))
+      {
+        decimal = va_arg (args, signed long);
+      }
+      else
+      {
+        decimal = va_arg (args, signed int);
+      }
+      ptr = format_decimal (ptr, decimal, width, flags);
+    }
+    else
+    {
+      *(--ptr) = *fmt;
+    }
     /* Write out conversion result */
     if (wptr == NULL)
     {

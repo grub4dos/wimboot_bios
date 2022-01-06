@@ -36,11 +36,6 @@
 #include "rotate.h"
 #include "sha1.h"
 
-#if __GNUC__ >= 9
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
-#endif
-
 /** SHA-1 variables */
 struct sha1_variables
 {
@@ -246,7 +241,3 @@ void sha1_final (void *ctx, void *out)
   memcpy (out, &context->ddd.dd.digest,
           sizeof (context->ddd.dd.digest));
 }
-
-#if __GNUC__ >= 9
-  #pragma GCC diagnostic pop
-#endif

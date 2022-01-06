@@ -41,6 +41,8 @@
 #include "wimpatch.h"
 #include "wimfile.h"
 #include "pause.h"
+#include "paging.h"
+#include "memmap.h"
 
 /** Start of our image (defined by linker) */
 extern char _start[];
@@ -60,11 +62,33 @@ size_t initrd_len;
 /** bootmgr.exe path within WIM */
 static const wchar_t bootmgr_path[] = L"\\Windows\\Boot\\PXE\\bootmgr.exe";
 
+/** Other paths within WIM */
+static const wchar_t *wim_paths[] =
+{
+  L"\\Windows\\Boot\\DVD\\PCAT\\boot.sdi",
+  L"\\Windows\\Boot\\DVD\\PCAT\\BCD",
+  L"\\Windows\\Boot\\Fonts\\segmono_boot.ttf",
+  L"\\Windows\\Boot\\Fonts\\segoen_slboot.ttf",
+  L"\\Windows\\Boot\\Fonts\\segoe_slboot.ttf",
+  L"\\Windows\\Boot\\Fonts\\wgl4_boot.ttf",
+  L"\\sms\\boot\\boot.sdi",
+  NULL
+};
+
 /** bootmgr.exe file */
 static struct vdisk_file *bootmgr;
 
+/** WIM image file */
+static struct vdisk_file *bootwim;
+
 /** Minimal length of embedded bootmgr.exe */
 #define BOOTMGR_MIN_LEN 16384
+
+/** 1MB memory threshold */
+#define ADDR_1MB 0x00100000
+
+/** 2GB memory threshold */
+#define ADDR_2GB 0x80000000
 
 /** Memory regions */
 enum
@@ -82,28 +106,31 @@ enum
  */
 static void call_interrupt_wrapper (struct bootapp_callback_params *params)
 {
+  struct paging_state state;
   uint16_t *attributes;
   /* Handle/modify/pass-through interrupt as required */
   if (params->vector.interrupt == 0x13)
   {
+    /* Enable paging */
+    enable_paging (&state);
     /* Intercept INT 13 calls for the emulated drive */
     emulate_int13 (params);
+    /* Disable paging */
+    disable_paging (&state);
+  }
+  else if ((params->vector.interrupt == 0x10) &&
+           (params->ax == 0x4f01) && (! cmdline_gui))
+  {
+    /* Mark all VESA video modes as unsupported */
+    attributes = REAL_PTR (params->es, params->di);
+    call_interrupt (params);
+    *attributes &= ~0x0001;
   }
   else
-    if ((params->vector.interrupt == 0x10) &&
-        (params->ax == 0x4f01) &&
-        (! cmdline_gui))
-    {
-      /* Mark all VESA video modes as unsupported */
-      attributes = REAL_PTR (params->es, params->di);
-      call_interrupt (params);
-      *attributes &= ~0x0001;
-    }
-    else
-    {
-      /* Pass through interrupt */
-      call_interrupt (params);
-    }
+  {
+    /* Pass through interrupt */
+    call_interrupt (params);
+  }
 }
 
 /** Real-mode callback functions */
@@ -140,7 +167,8 @@ static struct
   struct bootapp_pointless_descriptor pointless;
 } __attribute__ ((packed)) bootapps =
 {
-  .bootapp = {
+  .bootapp =
+  {
     .signature = BOOTAPP_SIGNATURE,
     .version = BOOTAPP_VERSION,
     .len = sizeof (bootapps),
@@ -151,41 +179,48 @@ static struct
     .callback = offsetof (typeof (bootapps), callback),
     .pointless = offsetof (typeof (bootapps), pointless),
   },
-  .memory = {
+  .memory =
+  {
     .version = BOOTAPP_MEMORY_VERSION,
     .len = sizeof (bootapps.memory),
     .num_regions = NUM_REGIONS,
     .region_len = sizeof (bootapps.regions[0]),
     .reserved_len = sizeof (bootapps.regions[0].reserved),
   },
-  .entry = {
+  .entry =
+  {
     .signature = BOOTAPP_ENTRY_SIGNATURE,
     .flags = BOOTAPP_ENTRY_FLAGS,
   },
-  .wtf1 = {
+  .wtf1 =
+  {
     .flags = 0x11000001,
     .len = sizeof (bootapps.wtf1),
     .extra_len = (sizeof (bootapps.wtf2) +
                   sizeof (bootapps.wtf3)),
   },
-  .wtf3 = {
+  .wtf3 =
+  {
     .flags = 0x00000006,
     .len = sizeof (bootapps.wtf3),
     .boot_partition_offset = (VDISK_VBR_LBA * VDISK_SECTOR_SIZE),
     .xxx = 0x01,
     .mbr_signature = VDISK_MBR_SIGNATURE,
   },
-  .wtf3_copy = {
+  .wtf3_copy =
+  {
     .flags = 0x00000006,
     .len = sizeof (bootapps.wtf3),
     .boot_partition_offset = (VDISK_VBR_LBA * VDISK_SECTOR_SIZE),
     .xxx = 0x01,
     .mbr_signature = VDISK_MBR_SIGNATURE,
   },
-  .callback = {
+  .callback =
+  {
     .callback = &callback,
   },
-  .pointless = {
+  .pointless =
+  {
     .version = BOOTAPP_POINTLESS_VERSION,
   },
 };
@@ -240,11 +275,10 @@ static struct vdisk_file *add_bootmgr (const void *data, size_t len)
   ssize_t (* decompress) (const void *data, size_t len, void *buf);
   ssize_t decompressed_len;
   size_t padded_len;
-  /* Look for an embedded compressed bootmgr.exe on a paragraph
-   * boundary.
+  /* Look for an embedded compressed bootmgr.exe on an
+   * eight-byte boundary.
    */
-  for (offset = BOOTMGR_MIN_LEN ; offset < (len - BOOTMGR_MIN_LEN) ;
-       offset += 0x10)
+  for (offset = BOOTMGR_MIN_LEN; offset < (len - BOOTMGR_MIN_LEN); offset += 0x08)
   {
     /* Initialise checks */
     decompress = NULL;
@@ -257,7 +291,8 @@ static struct vdisk_file *add_bootmgr (const void *data, size_t len)
      * boundary, with a preceding tag byte indicating that
      * these two bytes would indeed be uncompressed.
      */
-    if (((compressed[0x02] & 0x03) == 0x00) &&
+    if (((offset & 0x0f) == 0x00) &&
+        ((compressed[0x02] & 0x03) == 0x00) &&
         (compressed[0x03] == 'M') &&
         (compressed[0x04] == 'Z'))
     {
@@ -288,7 +323,7 @@ static struct vdisk_file *add_bootmgr (const void *data, size_t len)
       decompress = xca_decompress;
     }
     /* If we have not found a possible bootmgr.exe, skip
-     * to the next paragraph.
+     * to the next offset.
      */
     if (! decompress)
     {
@@ -336,31 +371,55 @@ static int add_file (const char *name, void *data, size_t len)
     DBG ("...found bootmgr.exe\n");
     bootmgr = file;
   }
-  else
-    if (strcasecmp (name, "bootmgr") == 0)
-    {
-      DBG ("...found bootmgr\n");
-      if ((! bootmgr) &&
-          (bootmgr = add_bootmgr (data, len)))
-      {
-        DBG ("...extracted bootmgr.exe\n");
-      }
-    }
-    else
-      if (strcasecmp ((name + strlen (name) - 4),
-                      ".wim") == 0)
-      {
-        DBG ("...found WIM file %s\n", name);
-        vdisk_patch_file (file, patch_wim);
-        if ((! bootmgr) &&
-            (bootmgr = wim_add_file (file, cmdline_index,
-                                     bootmgr_path,
-                                     L"bootmgr.exe")))
-        {
-          DBG ("...extracted bootmgr.exe\n");
-        }
-      }
+  else if (strcasecmp (name, "bootmgr") == 0)
+  {
+    DBG ("...found bootmgr\n");
+    if ((! bootmgr) && (bootmgr = add_bootmgr (data, len)))
+      DBG ("...extracted bootmgr.exe\n");
+  }
+  else if (strcasecmp ((name + strlen (name) - 4), ".wim") == 0)
+  {
+    DBG ("...found WIM file %s\n", name);
+    bootwim = file;
+  }
   return 0;
+}
+
+/**
+ * Relocate data between 1MB and 2GB if possible
+ *
+ * @v data    Start of data
+ * @v len    Length of data
+ * @ret start    Start address
+ */
+static void *relocate_memory_low (void *data, size_t len)
+{
+  struct e820_entry *e820 = NULL;
+  uint64_t end;
+  intptr_t start;
+
+  /* Read system memory map */
+  while ((e820 = memmap_next (e820)) != NULL)
+  {
+    /* Find highest compatible placement within this region */
+    end = (e820->start + e820->len);
+    start = ((end > ADDR_2GB) ? ADDR_2GB : end);
+    if (start < len)
+      continue;
+    start -= len;
+    start &= ~(PAGE_SIZE - 1);
+    if (start < e820->start)
+      continue;
+    if (start < ADDR_1MB)
+      continue;
+
+    /* Relocate to this region */
+    memmove ((void *) start, data, len);
+    return ((void *) start);
+  }
+
+  /* Leave at original location */
+  return data;
 }
 
 /**
@@ -372,15 +431,34 @@ int main (void)
   size_t padded_len;
   void *raw_pe;
   struct loaded_pe pe;
+  struct paging_state state;
+  uint64_t initrd_phys;
+  /* Initialise stack cookie */
+  init_cookie();
   /* Print welcome banner */
   printf ("\n\nwimboot " VERSION " -- Windows Imaging Format "
-          "bootloader -- http://ipxe.org/wimboot\n\n");
+          "bootloader -- https://ipxe.org/wimboot\n\n");
   /* Process command line */
   process_cmdline (cmdline);
+  /* Initialise paging */
+  init_paging();
+  /* Enable paging */
+  enable_paging (&state);
+  /* Relocate initrd below 2GB if possible, to avoid collisions */
+  DBG ("Found initrd at [%p,%p)\n", initrd, (initrd + initrd_len));
+  initrd = relocate_memory_low (initrd, initrd_len);
+  DBG ("Placing initrd at [%p,%p)\n", initrd, (initrd + initrd_len));
   /* Extract files from initrd */
   if (cpio_extract (initrd, initrd_len, add_file) != 0)
-  {
     die ("FATAL: could not extract initrd files\n");
+  /* Process WIM image */
+  if (bootwim)
+  {
+    vdisk_patch_file (bootwim, patch_wim);
+    if ((! bootmgr) &&
+        (bootmgr = wim_add_file (bootwim, cmdline_index, bootmgr_path, L"bootmgr.exe")))
+      DBG ("...extracted bootmgr.exe\n");
+      wim_add_files (bootwim, cmdline_index, wim_paths);
   }
   /* Add INT 13 drive */
   callback.drive = initialise_int13();
@@ -405,6 +483,9 @@ int main (void)
   {
     die ("FATAL: Could not load bootmgr.exe\n");
   }
+  /* Relocate initrd above 4GB if possible, to free up 32-bit memory */
+  initrd_phys = relocate_memory_high (initrd, initrd_len);
+  DBG ("Placing initrd at physical [%#llx,%#llx)\n", initrd_phys, (initrd_phys + initrd_len));
   /* Complete boot application descriptor set */
   bootapps.bootapp.pe_base = pe.base;
   bootapps.bootapp.pe_len = pe.len;
@@ -413,15 +494,18 @@ int main (void)
   bootapps.regions[PE_REGION].start_page = page_start (pe.base);
   bootapps.regions[PE_REGION].num_pages =
           page_len (pe.base, (uint8_t *) pe.base + pe.len);
-  bootapps.regions[INITRD_REGION].start_page = page_start (initrd);
+  bootapps.regions[INITRD_REGION].start_page = (initrd_phys / PAGE_SIZE);
   bootapps.regions[INITRD_REGION].num_pages =
           page_len (initrd, (uint8_t *) initrd + initrd_len);
+  /* Omit initrd region descriptor if located above 4GB */
+  if (initrd_phys >= ADDR_4GB)
+    bootapps.memory.num_regions--;
+  /* Disable paging */
+  disable_paging (&state);
   /* Jump to PE image */
   DBG ("Entering bootmgr.exe with parameters at %p\n", &bootapps);
   if (cmdline_pause)
-  {
     pause();
-  }
   pe.entry (&bootapps.bootapp);
   die ("FATAL: bootmgr.exe returned\n");
 }

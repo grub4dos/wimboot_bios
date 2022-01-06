@@ -35,11 +35,6 @@
 /** Virtual files */
 struct vdisk_file vdisk_files[VDISK_MAX_FILES];
 
-#if __GNUC__ >= 9
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
-#endif
-
 /**
  * Read from virtual Master Boot Record
  *
@@ -257,21 +252,19 @@ static union vdisk_directory_entry *
     {
       lfn_char = &lfn->lfn.name_2[0];
     }
+    else if (lfn_char == &lfn->lfn.name_2[5])
+    {
+      lfn_char = &lfn->lfn.name_3[0];
+    }
+    else if (lfn_char == &lfn->lfn.name_3[1])
+    {
+      lfn--;
+      lfn_char = &lfn->lfn.name_1[0];
+    }
     else
-      if (lfn_char == &lfn->lfn.name_2[5])
-      {
-        lfn_char = &lfn->lfn.name_3[0];
-      }
-      else
-        if (lfn_char == &lfn->lfn.name_3[1])
-        {
-          lfn--;
-          lfn_char = &lfn->lfn.name_1[0];
-        }
-        else
-        {
-          lfn_char++;
-        }
+    {
+      lfn_char++;
+    }
   }
   lfn->lfn.sequence |= VDISK_LFN_END;
   return (lfn - 1);
@@ -694,7 +687,3 @@ void vdisk_patch_file (struct vdisk_file *file,
   /* Allow patch method to update file length */
   patch (file, NULL, 0, 0);
 }
-
-#if __GNUC__ >= 9
-  #pragma GCC diagnostic pop
-#endif

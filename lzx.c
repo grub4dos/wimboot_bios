@@ -266,50 +266,39 @@ static int lzx_pretree (struct lzx *lzx, unsigned int count,
       {
         length = ((lengths[i] - code + 17) % 17);
       }
+      else if (code == 17)
+      {
+        length = 0;
+        dup = lzx_getbits (lzx, 4);
+        if (dup < 0)
+          return dup;
+        dup += 3;
+      }
+      else if (code == 18)
+      {
+        length = 0;
+        dup = lzx_getbits (lzx, 5);
+        if (dup < 0)
+          return dup;
+        dup += 19;
+      }
+      else if (code == 19)
+      {
+        length = 0;
+        dup = lzx_getbits (lzx, 1);
+        if (dup < 0)
+          return dup;
+        dup += 3;
+        code = lzx_decode (lzx, &lzx->pretree);
+        if (code < 0)
+          return code;
+        length = ((lengths[i] - code + 17) % 17);
+      }
       else
-        if (code == 17)
-        {
-          length = 0;
-          dup = lzx_getbits (lzx, 4);
-          if (dup < 0)
-          {
-            return dup;
-          }
-          dup += 3;
-        }
-        else
-          if (code == 18)
-          {
-            length = 0;
-            dup = lzx_getbits (lzx, 5);
-            if (dup < 0)
-            {
-              return dup;
-            }
-            dup += 19;
-          }
-          else
-            if (code == 19)
-            {
-              length = 0;
-              dup = lzx_getbits (lzx, 1);
-              if (dup < 0)
-              {
-                return dup;
-              }
-              dup += 3;
-              code = lzx_decode (lzx, &lzx->pretree);
-              if (code < 0)
-              {
-                return code;
-              }
-              length = ((lengths[i] - code + 17) % 17);
-            }
-            else
-            {
-              DBG ("Unrecognised pretree code %d\n", code);
-              return -1;
-            }
+      {
+        DBG ("Unrecognised pretree code %d\n", code);
+        return -1;
+      }
       lengths[i] = length;
     }
   }

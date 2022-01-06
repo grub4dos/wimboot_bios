@@ -1,35 +1,34 @@
-VERSION := v2.6.0
+VERSION := v2.7.3
 
 OBJECTS := prefix.o startup.o callback.o main.o vsprintf.o string.o peloader.o
 OBJECTS += int13.o vdisk.o cpio.o stdio.o lznt1.o xca.o die.o cmdline.o
-OBJECTS += wimpatch.o huffman.o lzx.o wim.o wimfile.o pause.o sha1.o
-
-OBJECTS_i386 := $(patsubst %.o,%.i386.o,$(OBJECTS))
-OBJECTS_x86_64 := $(patsubst %.o,%.x86_64.o,$(OBJECTS))
-OBJECTS_i386_x86_64 := $(patsubst %.o,%.i386.x86_64.o,$(OBJECTS))
+OBJECTS += wimpatch.o huffman.o lzx.o wim.o wimfile.o pause.o sha1.o cookie.o
+OBJECTS += paging.o memmap.o
 
 HEADERS := $(wildcard *.h)
 
-HOST_CC		:= $(CC)
-AS		:= $(AS)
-ECHO		:= echo
-OBJCOPY 	:= objcopy
-AR		:= ar
-RANLIB		:= ranlib
-RM		:= rm
-DIFF		:= diff
-CUT		:= cut
+HOST_CC := $(CC)
+AS := $(AS)
+ECHO := echo
+OBJCOPY := objcopy
+AR := ar
+RANLIB := ranlib
+RM := rm
+DIFF := diff
+CUT := cut
 
-CFLAGS += -Os -ffreestanding -Wall -W -Werror -Wextra -nostdinc -I. -fshort-wchar -Wpointer-arith
+CFLAGS += -Os -ffreestanding -Wall -Werror -Wextra -nostdinc -I. -fshort-wchar
 CFLAGS += -DVERSION="\"$(VERSION)\""
 
 CFLAGS += -m32 -march=i386 -malign-double -fno-pic
 
-# Inhibit -fno-stack-protector
-SP_TEST = $(CC) -fno-stack-protector -x c -c /dev/null \
-                -o /dev/null >/dev/null 2>&1
-SP_FLAGS := $(shell $(SP_TEST) && $(ECHO) '-fno-stack-protector')
-WORKAROUND_CFLAGS += $(SP_FLAGS)
+# Enable stack protection if available
+#
+SPG_TEST = $(CC) -fstack-protector-strong -mstack-protector-guard=global \
+		 -x c -c /dev/null -o /dev/null >/dev/null 2>&1
+SPG_FLAGS := $(shell $(SPG_TEST) && $(ECHO) '-fstack-protector-strong ' \
+					    '-mstack-protector-guard=global')
+CFLAGS += $(SPG_FLAGS)
 
 # Inhibit unwanted debugging information
 CFI_TEST = $(CC) -fno-dwarf2-cfi-asm -fno-exceptions -fno-unwind-tables \
@@ -46,6 +45,11 @@ WNAPM_TEST = $(CC) -Wno-address-of-packed-member -x c -c /dev/null \
 WNAPM_FLAGS := $(shell $(WNAPM_TEST) && \
 		 $(ECHO) '-Wno-address-of-packed-member')
 WORKAROUND_CFLAGS += $(WNAPM_FLAGS)
+
+# Inhibit LTO
+LTO_TEST = $(CC) -fno-lto -x c -c /dev/null -o /dev/null >/dev/null 2>&1
+LTO_FLAGS := $(shell $(LTO_TEST) && $(ECHO) '-fno-lto')
+WORKAROUND_CFLAGS += $(LTO_FLAGS)
 
 CFLAGS += $(WORKAROUND_CFLAGS)
 CFLAGS += $(EXTRA_CFLAGS)

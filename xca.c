@@ -115,60 +115,53 @@ ssize_t xca_decompress (const void *data, size_t len, void *buf)
       }
       out_len++;
     }
+    else if ((raw == XCA_END_MARKER) && ((uint8_t *)src >= (uint8_t *)end - 1))
+    {
+      /* End marker symbol */
+      return out_len;
+    }
     else
-      if ((raw == XCA_END_MARKER) &&
-          ((uint8_t *)src >= (uint8_t *)end - 1))
+    {
+      /* LZ77 match symbol */
+      raw -= XCA_END_MARKER;
+      match_offset_bits = (raw >> 4);
+      match_len = (raw & 0x0f);
+      if (match_len == 0x0f)
       {
-        /* End marker symbol */
-        return out_len;
+        match_len = XCA_GET8 (src);
+        if (match_len == 0xff)
+          match_len = XCA_GET16 (src);
+        else
+          match_len += 0x0f;
+      }
+      match_len += 3;
+      if (match_offset_bits)
+      {
+        match_offset =
+          ((accum >> (32 - match_offset_bits)) + (1 << match_offset_bits));
       }
       else
       {
-        /* LZ77 match symbol */
-        raw -= XCA_END_MARKER;
-        match_offset_bits = (raw >> 4);
-        match_len = (raw & 0x0f);
-        if (match_len == 0x0f)
+        match_offset = 1;
+      }
+      accum <<= match_offset_bits;
+      extra_bits -= match_offset_bits;
+      if (extra_bits < 0)
+      {
+        accum |= (XCA_GET16 (src) << (-extra_bits));
+        extra_bits += 16;
+      }
+      /* Copy data */
+      out_len += match_len;
+      if (buf)
+      {
+        copy = (out - match_offset);
+        while (match_len--)
         {
-          match_len = XCA_GET8 (src);
-          if (match_len == 0xff)
-          {
-            match_len = XCA_GET16 (src);
-          }
-          else
-          {
-            match_len += 0x0f;
-          }
-        }
-        match_len += 3;
-        if (match_offset_bits)
-        {
-          match_offset =
-                  ((accum >> (32 - match_offset_bits))
-                   + (1 << match_offset_bits));
-        }
-        else
-        {
-          match_offset = 1;
-        }
-        accum <<= match_offset_bits;
-        extra_bits -= match_offset_bits;
-        if (extra_bits < 0)
-        {
-          accum |= (XCA_GET16 (src) << (-extra_bits));
-          extra_bits += 16;
-        }
-        /* Copy data */
-        out_len += match_len;
-        if (buf)
-        {
-          copy = (out - match_offset);
-          while (match_len--)
-          {
-            * (out++) = * (copy++);
-          }
+          *(out++) = *(copy++);
         }
       }
+    }
   }
   DBG ("XCA input overrun at output length %#zx\n", out_len);
   return -1;
